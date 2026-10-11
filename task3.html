@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>任务三：影响种群数量变化的模拟实验</title>
+<style>
+*{box-sizing:border-box;font-family:"Microsoft Yahei",sans-serif;}
+body{padding:16px;max-width:1400px;margin:0 auto;font-size:16px;background-color:#f7f9fc;}
+h2{color:#203864;text-align:center;margin-bottom:20px;font-weight:600;}
+
+.info-box{border:1px solid #82a8d8;background:#e8f0fb;padding:16px;border-radius:10px;margin-bottom:18px;line-height:1.7;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+
+.inquire-wrap{margin-bottom:20px;}
+.inquire-item{margin-bottom:14px;}
+.inquire-item label{display:block;margin-bottom:6px;font-weight:bold;color:#222;}
+.inquire-item textarea{width:100%;min-height:85px;padding:12px;font-size:16px;border:1px solid #bbbbbb;border-radius:8px;resize:vertical;background:#fff;}
+.main-layout{display:flex;gap:18px;flex-wrap:wrap;}
+.control-panel{width:280px;background:#fff;padding:16px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.12);flex-shrink:0;}
+.chart-container{flex:1;min-width:600px;display:flex;gap:16px;flex-wrap:wrap;}
+.chart-card{
+    flex:1;
+    min-width:280px;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    background:#fff;
+    padding:14px;
+    border-radius:6px;
+    box-shadow:0 2px 5px #00000008;
+    border:1px solid #ccd6e0;
+}
+.chart-title{font-weight:bold;margin-bottom:10px;color:#203864;font-size:16px;align-self:flex-start;}
+.group{margin-bottom:14px;}
+.group label{display:block;margin-bottom:5px;color:#222;font-weight:500;font-size:15px;}
+select{width:100%;padding:8px 10px;font-size:15px;border:1px solid #bbb;border-radius:7px;background:#fff;}
+.btns{margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;}
+button{padding:9px 14px;border:none;border-radius:7px;font-size:15px;cursor:pointer;}
+.btn-run{background:#2b7bcc;color:white;}
+.btn-run:hover{background:#1f64aa;}
+.btn-reset{background:#cccccc;color:#222;}
+.btn-rec{background:#30a850;color:white;}
+.btn-clear-record{background:#ed4c4c;color:white;}
+canvas{width:100%;border:1px solid #dde3ea;background:#fefefe;border-radius:6px;min-height:320px;}
+.data-show{margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;width:100%;}
+.data-item{background:#f4f7fb;padding:8px 4px;border-radius:7px;text-align:center;}
+.data-item .lab{font-size:13px;color:#555;}
+.data-item .num{font-size:17px;font-weight:bold;color:#1b4088;}
+.legend-wrap{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;width:100%;}
+.legend-item{display:flex;align-items:center;font-size:13px;gap:4px;}
+.legend-color-block{width:14px;height:14px;border-radius:3px;}
+.record-box{margin-top:14px;max-height:160px;overflow:auto;border:1px solid #ddd;padding:10px;border-radius:7px;}
+.record-item{padding:5px 0;border-bottom:1px solid #eee;font-size:13px;}
+.conclusion-wrap{margin-top:22px;}
+.conclusion-wrap label{display:block;margin-bottom:6px;font-weight:bold;color:#222;}
+.conclusion-wrap textarea{width:100%;min-height:100px;padding:12px;font-size:16px;border:1px solid #bbbbbb;border-radius:8px;resize:vertical;background:#fff;}
+.save-tip{color:#288b38;font-size:14px;margin:7px 0;}
+@media(max-width:980px){
+    .main-layout{flex-direction:column;}
+    .control-panel{width:100%;}
+    .chart-container{min-width:unset;}
+    .chart-card{width:100%;min-width:unset;}
+    .data-show{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<h2>影响种群数量变化的模拟实验</h2>
+<div class="info-box">
+围绕小组成员想要探究的环境因子，提出问题并作出假设，遵循单一变量原则设置实验组与对照组，使用环境参数设置台时请先更改环境设置，再点击开始仿真，等待曲线完成后点击记录本组实验结果，实验曲线将被保存在多组实验对比曲线中，随后选择重置，再重新设置环境条件，开始下一组实验。最后对照实验结果与文献结论，得出小组探究的结论。
+</div>
+<div class="inquire-wrap">
+    <div class="inquire-item">
+        <label>提出问题</label>
+        <textarea id="qText" placeholder="……对中华绒螯蟹种群数量的变化有何影响？"></textarea>
+    </div>
+    <div class="inquire-item">
+        <label>作出假设</label>
+        <textarea id="hypText" placeholder="例：水温过低或过高会……。"></textarea>
+    </div>
+    <div>
+        <button id="saveQH">保存问题与假设</button>
+        <span class="save-tip" id="qhTip"></span>
+    </div>
+</div>
+<div class="main-layout">
+    <div class="control-panel">
+        <h3 style="margin:0 0 14px 0;font-size:16px;color:#203864;">环境参数设置</h3>
+        <div class="group">
+            <label>水温</label>
+            <select id="tempSel">
+                <option value="opt" selected>最适</option>
+                <option value="low">偏低</option>
+                <option value="high">偏高</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>伊乐藻（水草）</label>
+            <select id="plantSel">
+                <option value="yes" selected>有伊乐藻</option>
+                <option value="no">无伊乐藻</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>蟹奴寄生</label>
+            <select id="paraSel">
+                <option value="no" selected>无蟹奴</option>
+                <option value="yes">有蟹奴</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>盐度</label>
+            <select id="saltSel">
+                <option value="low">低盐度</option>
+                <option value="opt" selected>适宜盐度</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>溶解氧</label>
+            <select id="oxSel">
+                <option value="low">低氧</option>
+                <option value="opt" selected>适宜</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>pH</label>
+            <select id="phSel">
+                <option value="acid">酸性</option>
+                <option value="neu" selected>中性</option>
+                <option value="alk">碱性</option>
+            </select>
+        </div>
+        <div class="btns">
+            <button class="btn-run" id="runBtn">▶ 开始仿真</button>
+            <button class="btn-reset" id="resetBtn">重置本组</button>
+        </div>
+        <div class="btns">
+            <button class="btn-rec" id="recBtn">记录本组实验</button>
+            <button class="btn-clear-record" id="clearAllRec">清空记录</button>
+        </div>
+        <div style="margin-top:14px;">
+            <h4 style="margin:0 0 6px 0;font-size:15px;color:#203864;">已记录实验组</h4>
+            <div class="record-box" id="recBox">
+                <div style="color:#888;font-size:13px;">尚未记录实验</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-card">
+            <div class="chart-title">单组实时仿真曲线</div>
+            <canvas id="popCanvas" height="320"></canvas>
+            <div class="data-show">
+                <div class="data-item">
+                    <div class="lab">当前种群数量</div>
+                    <div class="num" id="popNum">-</div>
+                </div>
+                <div class="data-item">
+                    <div class="lab">出生率</div>
+                    <div class="num" id="birthNum">-</div>
+                </div>
+                <div class="data-item">
+                    <div class="lab">死亡率</div>
+                    <div class="num" id="deathNum">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">多组实验对比曲线</div>
+            <canvas id="compareCanvas" height="320"></canvas>
+            <div class="legend-wrap" id="legendWrap"></div>
+        </div>
+    </div>
+</div>
+
+<div class="conclusion-wrap">
+    <label>得出结论</label>
+    <textarea id="conText" placeholder="结合仿真结果与文献1/2……，得出……对中华绒螯蟹种群数量变化的影响是……"></textarea>
+    <div style="margin-top:8px;">
+        <button id="saveCon">保存结论</button>
+        <span class="save-tip" id="conTip"></span>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('popCanvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+const compareCanvas = document.getElementById('compareCanvas');
+const ctxComp = compareCanvas ? compareCanvas.getContext('2d') : null;
+const legendWrap = document.getElementById("legendWrap");
+
+const popNumEl = document.getElementById('popNum');
+const birthNumEl = document.getElementById('birthNum');
+const deathNumEl = document.getElementById('deathNum');
+const runBtn = document.getElementById('runBtn');
+const resetBtn = document.getElementById('resetBtn');
+const recBtn = document.getElementById('recBtn');
+const clearAllRec = document.getElementById('clearAllRec');
+const recBox = document.getElementById('recBox');
+
+const tempSel = document.getElementById('tempSel');
+const plantSel = document.getElementById('plantSel');
+const paraSel = document.getElementById('paraSel');
+const saltSel = document.getElementById('saltSel');
+const oxSel = document.getElementById('oxSel');
+const phSel = document.getElementById('phSel');
+
+const qText = document.getElementById("qText");
+const hypText = document.getElementById("hypText");
+const conText = document.getElementById("conText");
+const saveQH = document.getElementById("saveQH");
+const qhTip = document.getElementById("qhTip");
+const saveCon = document.getElementById("saveCon");
+const conTip = document.getElementById("conTip");
+
+const STORAGE_QUESTION = "crab_question";
+const STORAGE_HYP = "crab_hypothesis";
+const STORAGE_CON = "crab_conclusion";
+
+let simRunning = false;
+let simTimer = null;
+let timeList = [];
+let popList = [];
+let birthList = [];
+let deathList = [];
+let month = 0;
+let population = 120;
+let records = [];
+const lineColors = ["#2b7bcc","#e64949","#33a848","#994fc2","#ff8822","#11aabb"];
+
+function getRealValues(){
+    let tempMap = {"opt":25,"low":14,"high":32};
+    let plantMap = {"yes":70,"no":5};
+    let paraMap = {"no":0,"yes":40};
+    let saltMap = {"low":1,"opt":5};
+    let oxMap = {"low":2.5,"opt":6};
+    let phMap = {"acid":6.4,"neu":7.8,"alk":8.8};
+    return {
+        temp: tempMap[tempSel.value],
+        plant: plantMap[plantSel.value],
+        parasite: paraMap[paraSel.value],
+        salt: saltMap[saltSel.value],
+        oxygen: oxMap[oxSel.value],
+        ph: phMap[phSel.value]
+    }
+}
+
+function calcEnvironment(){
+    const v = getRealValues();
+    const temp = v.temp;
+    const plant = v.plant;
+    const parasite = v.parasite;
+    const salt = v.salt;
+    const oxygen = v.oxygen;
+    const ph = v.ph;
+
+    let tempFit = Math.exp(-Math.pow((temp-25)/4.2,2));
+    let plantFit = Math.exp(-Math.pow((plant-70)/24,2));
+    let saltFit = Math.exp(-Math.pow((salt-5)/3.2,2));
+    let oxFit = Math.exp(-Math.pow((oxygen-6)/1.8,2));
+    let phFit = Math.exp(-Math.pow((ph-7.8)/0.7,2));
+
+    let envFit = tempFit*0.23 + plantFit*0.27 + saltFit*0.22 + oxFit*0.18 + phFit*0.10;
+    envFit = Math.max(0.01,Math.min(1.0,envFit));
+    const paraFactor = parasite / 100.0;
+    let birthRateBase = 0.33 * envFit * (1-paraFactor*0.82);
+    if(salt === 1){
+        birthRateBase *= 0.28;
+    }
+    let deathRateBase = 0.04 + (1-envFit)*0.30 + paraFactor*0.48;
+    return {birth:birthRateBase, death:deathRateBase, fit:envFit};
+}
+
+function drawChart(){
+    if(!canvas || !ctx) return;
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const padL = 52;
+    const padR = 16;
+    const padB = 42;
+    const padT = 16;
+    const chartW = w-padL-padR;
+    const chartH = h-padT-padB;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, h-padB);
+    ctx.lineTo(w-padR, h-padB);
+    ctx.strokeStyle="#666"; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle="#444"; ctx.font="13px sans-serif";
+    ctx.save();ctx.translate(16, h/2);ctx.rotate(-Math.PI/2);ctx.fillText("种群数量(个体)",0,0);ctx.restore();
+    ctx.fillText("时间(月)", w/2-28, h-6);
+    if(timeList.length <2) return;
+    const maxPop = Math.max(...popList)*1.15;
+    const maxT = Math.max(...timeList);
+    ctx.beginPath();
+    for(let i=0;i<timeList.length;i++){
+        const t = timeList[i];
+        const p = popList[i];
+        const x = padL + (t/maxT)*chartW;
+        const y = (h-padB)- (p/maxPop)*chartH;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle="#2b7bcc"; ctx.lineWidth=2.4; ctx.stroke();
+    for(let i=0;i<timeList.length;i++){
+        const t = timeList[i];
+        const p = popList[i];
+        const x = padL + (t/maxT)*chartW;
+        const y = (h-padB)- (p/maxPop)*chartH;
+        ctx.beginPath();ctx.arc(x,y,3.8,0,Math.PI*2);ctx.fillStyle="#2b7bcc";ctx.fill();
+    }
+}
+
+function drawCompareChart(){
+    if(!compareCanvas || !ctxComp) return;
+    compareCanvas.width = compareCanvas.clientWidth;
+    compareCanvas.height = compareCanvas.clientHeight;
+    const w = compareCanvas.width;
+    const h = compareCanvas.height;
+    ctxComp.clearRect(0,0,w,h);
+    const padL = 52;
+    const padR = 16;
+    const padB = 42;
+    const padT = 16;
+    const chartW = w-padL-padR;
+    const chartH = h-padT-padB;
+    ctxComp.beginPath();
+    ctxComp.moveTo(padL, padT);
+    ctxComp.lineTo(padL, h-padB);
+    ctxComp.lineTo(w-padR, h-padB);
+    ctxComp.strokeStyle="#666"; ctxComp.lineWidth=1.5; ctxComp.stroke();
+    ctxComp.fillStyle="#444"; ctxComp.font="13px sans-serif";
+    ctxComp.save();ctxComp.translate(16, h/2);ctxComp.rotate(-Math.PI/2);ctxComp.fillText("种群数量(个体)",0,0);ctxComp.restore();
+    ctxComp.fillText("时间(月)", w/2-28, h-6);
+    legendWrap.innerHTML = "";
+    for(let idx=0;idx<records.length;idx++){
+        const div = document.createElement("div");
+        div.className = "legend-item";
+        div.innerHTML = `<span class="legend-color-block" style="background:${lineColors[idx % lineColors.length]}"></span>实验${idx+1}`;
+        legendWrap.appendChild(div);
+    }
+    if(records.length===0) {
+        ctxComp.fillStyle="#888";
+        ctxComp.textAlign="center";
+        ctxComp.fillText("暂无记录的实验，请先记录仿真数据",w/2,h/2);
+        return;
+    }
+    let allPops = [];
+    records.forEach(r=>{allPops.push(...r.popData);})
+    const maxPopAll = Math.max(...allPops)*1.15;
+    const maxTAll = 36;
+    records.forEach((rec,idx)=>{
+        const color = lineColors[idx % lineColors.length];
+        ctxComp.beginPath();
+        for(let i=0;i<rec.timeData.length;i++){
+            const t = rec.timeData[i];
+            const p = rec.popData[i];
+            const x = padL + (t/maxTAll)*chartW;
+            const y = (h-padB)- (p/maxPopAll)*chartH;
+            if(i===0) ctxComp.moveTo(x,y); else ctxComp.lineTo(x,y);
+        }
+        ctxComp.strokeStyle=color;
+        ctxComp.lineWidth=2.2; ctxComp.stroke();
+    })
+}
+
+function simStep(){
+    const res = calcEnvironment();
+    let birth = res.birth;
+    let death = res.death;
+    const K = Math.round(1400 * res.fit);
+    const r = birth-death;
+    let delta = r * population * (1- population / K);
+    population = Math.max(5, Math.round(population + delta));
+    month +=1;
+    timeList.push(month);
+    popList.push(population);
+    birthList.push(birth);
+    deathList.push(death);
+    popNumEl.innerText = population;
+    birthNumEl.innerText = birth.toFixed(3);
+    deathNumEl.innerText = death.toFixed(3);
+    drawChart();
+    if(month >=36){
+        stopSim();
+    }
+}
+function startSim(){
+    if(simRunning) return;
+    simRunning = true;
+    runBtn.innerText = "⏸ 运行中";
+    simTimer = setInterval(simStep,220);
+}
+function stopSim(){
+    simRunning = false;
+    clearInterval(simTimer);
+    runBtn.innerText = "▶ 开始仿真";
+}
+function resetAll(){
+    stopSim();
+    month =0;
+    population =120;
+    timeList = []; popList=[]; birthList=[]; deathList=[];
+    popNumEl.innerText = "-"; birthNumEl.innerText="-"; deathNumEl.innerText="-";
+    drawChart();
+}
+function recordExp(){
+    const v = getRealValues();
+    const finalPop = popList.length>0 ? popList[popList.length-1]:"未运行";
+    const recObj = {
+        desc:`${tempSel.options[tempSel.selectedIndex].text},${plantSel.options[plantSel.selectedIndex].text},${paraSel.options[paraSel.selectedIndex].text},${saltSel.options[saltSel.selectedIndex].text},${oxSel.options[oxSel.selectedIndex].text},${phSel.options[phSel.selectedIndex].text}`,
+        finalPop,
+        month,
+        timeData:[...timeList],
+        popData:[...popList]
+    };
+    records.push(recObj);
+    renderRecord();
+    drawCompareChart();
+}
+function renderRecord(){
+    if(records.length===0){
+        recBox.innerHTML = `<div style="color:#888;font-size:13px;">尚未记录实验</div>`;
+        return;
+    }
+    let html = "";
+    records.forEach((r,idx)=>{
+        html += `<div class="record-item">实验${idx+1}｜${r.desc}｜终种群:${r.finalPop} 时长${r.month}月</div>`;
+    })
+    recBox.innerHTML = html;
+}
+function clearAllRecord(){
+    records = [];
+    renderRecord();
+    drawCompareChart();
+}
+
+runBtn.onclick = function(){
+    if(simRunning){stopSim();}else{startSim();}
+};
+resetBtn.onclick = resetAll;
+recBtn.onclick = recordExp;
+clearAllRec.onclick = clearAllRecord;
+
+saveQH.onclick = function(){
+    localStorage.setItem(STORAGE_QUESTION,qText.value);
+    localStorage.setItem(STORAGE_HYP,hypText.value);
+    qhTip.innerText="✅已保存问题与假设";
+    setTimeout(()=>qhTip.innerText="",2200);
+};
+saveCon.onclick = function(){
+    localStorage.setItem(STORAGE_CON,conText.value);
+    conTip.innerText="✅已保存实验结论";
+    setTimeout(()=>conTip.innerText="",2200);
+};
+
+window.onload = function(){
+    drawChart();
+    drawCompareChart();
+    qText.value = localStorage.getItem(STORAGE_QUESTION) || "";
+    hypText.value = localStorage.getItem(STORAGE_HYP) || "";
+    conText.value = localStorage.getItem(STORAGE_CON) || "";
+};
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->
