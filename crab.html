@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>种群数量变化模拟 · 大闸蟹蟹塘捕捞策略模拟</title>
+
+<!-- Chart.js（仅引入一次，供捕捞策略模拟页使用） -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+/* ================= 整合页：顶部标签切换 ================= */
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Source Han Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:#eef4f0;
+  -webkit-text-size-adjust:100%;
+}
+#tabbar{
+  position:sticky;top:0;z-index:9999;
+  display:flex;gap:10px;align-items:center;
+  padding:12px 18px;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid #d3e2d9;
+  box-shadow:0 2px 10px rgba(20,60,45,.08);
+  flex-wrap:wrap;
+}
+#tabbar .brand{
+  font-weight:800;color:#0f7a52;font-size:16px;margin-right:auto;
+  letter-spacing:.3px;
+}
+.tab-btn{
+  font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+  border:2px solid #d3e2d9;background:#fff;color:#4a6357;
+  border-radius:10px;padding:9px 20px;transition:.18s;
+  white-space:nowrap;
+}
+.tab-btn:hover{border-color:#8fc7ae;background:#f1f8f4;}
+.tab-btn.active{
+  background:linear-gradient(135deg,#0f7a52,#159b68);
+  border-color:#0f7a52;color:#fff;
+  box-shadow:0 3px 10px rgba(15,122,82,.32);
+}
+.page-panel{display:none;}
+.page-panel.active{display:block;}
+
+@media (max-width:640px){
+  #tabbar{padding:10px 12px;gap:8px;}
+  #tabbar .brand{width:100%;margin:0 0 4px;font-size:14px;}
+  .tab-btn{flex:1;padding:10px 8px;font-size:14px;text-align:center;}
+}
+
+/* ================= 页面一：种群数量变化模拟（统一为绿色自然风） ================= */
+#page-doc2 *{box-sizing:border-box;font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Source Han Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;}
+#page-doc2{
+  padding:20px 16px 60px;
+  max-width:1180px;margin:0 auto;font-size:16px;
+  background:#eef4f0;
+  color:#1b3a2f;
+  line-height:1.6;
+  -webkit-text-size-adjust:100%;
+}
+#page-doc2 h2{
+  color:#0f7a52;text-align:center;margin:0 0 20px;font-size:26px;font-weight:700;letter-spacing:.5px;
+}
+#page-doc2 .info-box{
+  border:1px solid #d3e2d9;background:#e3f2ea;padding:16px 18px;
+  border-radius:14px;margin-bottom:18px;line-height:1.7;
+  box-shadow:0 2px 10px rgba(20,60,45,.08);color:#1b3a2f;
+}
+#page-doc2 .material-wrap{
+  border:1px solid #d3e2d9;background:#fff;padding:18px 22px 20px;
+  border-radius:14px;margin-bottom:18px;
+  box-shadow:0 2px 10px rgba(20,60,45,.08);color:#1b3a2f;
+}
+#page-doc2 .material-wrap h3{
+  margin:0 0 12px;font-size:17px;font-weight:700;color:#0f7a52;
+  display:flex;align-items:center;gap:9px;line-height:1.2;
+}
+#page-doc2 .material-wrap h3::before{
+  content:"";display:inline-block;width:4px;height:18px;border-radius:2px;background:#0f7a52;flex:0 0 auto;
+}
+#page-doc2 .material-wrap p{
+  margin:0 0 12px;font-size:15.5px;line-height:1.85;color:#2c4a3d;
+  text-align:justify;text-indent:2em;
+}
+#page-doc2 .material-wrap p:last-child{margin-bottom:0;}
+#page-doc2 .main-layout{display:flex;gap:18px;flex-wrap:wrap;}
+#page-doc2 .control-panel{
+  width:280px;background:#fff;padding:20px;border-radius:14px;
+  border:1px solid #d3e2d9;box-shadow:0 2px 10px rgba(20,60,45,.08);flex-shrink:0;
+}
+#page-doc2 .chart-container{flex:1;min-width:600px;display:flex;gap:16px;flex-wrap:wrap;}
+#page-doc2 .chart-card{
+    flex:1;
+    min-width:280px;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    background:#fff;
+    padding:16px;
+    border-radius:14px;
+    box-shadow:0 2px 10px rgba(20,60,45,.08);
+    border:1px solid #d3e2d9;
+    margin-bottom:18px;
+}
+#page-doc2 .chart-title{font-weight:700;margin-bottom:12px;color:#0f7a52;font-size:16px;align-self:flex-start;
+  border-left:4px solid #0f7a52;padding-left:9px;line-height:1.2;}
+#page-doc2 .group{margin-bottom:14px;}
+#page-doc2 .group label{display:block;margin-bottom:5px;color:#1b3a2f;font-weight:600;font-size:15px;}
+#page-doc2 select{
+  width:100%;padding:9px 10px;font-size:15px;border:1px solid #d3e2d9;
+  border-radius:10px;background:#fbfdfc;color:#1b3a2f;cursor:pointer;
+  transition:border-color .18s, box-shadow .18s;font-family:inherit;
+}
+#page-doc2 select:focus{outline:none;border-color:#0f7a52;box-shadow:0 0 0 3px rgba(15,122,82,.12);background:#fff;}
+#page-doc2 .btns{margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;}
+#page-doc2 button{
+  padding:10px 16px;border:none;border-radius:10px;font-size:15px;font-weight:700;
+  cursor:pointer;transition:.18s;font-family:inherit;
+}
+#page-doc2 button:active{transform:translateY(1px);}
+#page-doc2 .btn-run{background:#0f7a52;color:#fff;box-shadow:0 3px 10px rgba(15,122,82,.3);}
+#page-doc2 .btn-run:hover{background:#0c6444;}
+#page-doc2 .btn-reset{background:#eef4f0;color:#4a6357;border:1px solid #c9dbd3;}
+#page-doc2 .btn-reset:hover{background:#e0eee7;}
+#page-doc2 .btn-rec{background:#159b68;color:#fff;box-shadow:0 3px 10px rgba(21,155,104,.28);}
+#page-doc2 .btn-rec:hover{background:#0f7a52;}
+#page-doc2 .btn-clear-record{background:#c0392b;color:#fff;}
+#page-doc2 .btn-clear-record:hover{background:#a52f23;}
+#page-doc2 canvas{width:100%;border:1px solid #d3e2d9;background:#fbfdfc;border-radius:10px;min-height:320px;}
+#page-doc2 .data-show{margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;}
+#page-doc2 .data-item{background:#e3f2ea;padding:10px 4px;border-radius:10px;text-align:center;border:1px solid #d3e2d9;}
+#page-doc2 .data-item .lab{font-size:13px;color:#4a6357;}
+#page-doc2 .data-item .num{font-size:17px;font-weight:800;color:#0f7a52;font-variant-numeric:tabular-nums;}
+#page-doc2 .legend-wrap{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;width:100%;}
+#page-doc2 .legend-item{display:flex;align-items:center;font-size:13px;gap:5px;color:#4a6357;}
+#page-doc2 .legend-color-block{width:14px;height:14px;border-radius:3px;}
+#page-doc2 .record-section{
+  margin-top:18px;background:#fff;border:1px solid #d3e2d9;border-radius:14px;
+  padding:18px 22px 20px;box-shadow:0 2px 10px rgba(20,60,45,.08);
+}
+#page-doc2 .record-title{
+  margin:0;font-size:16px;font-weight:700;color:#0f7a52;
+  display:flex;align-items:center;gap:9px;line-height:1.2;
+}
+#page-doc2 .record-title::before{
+  content:"";display:inline-block;width:4px;height:17px;border-radius:2px;background:#0f7a52;flex:0 0 auto;
+}
+#page-doc2 .record-box{
+  margin-top:12px;max-height:220px;overflow:auto;
+  border:1px solid #d3e2d9;background:#fbfdfc;padding:12px 14px;border-radius:10px;
+}
+#page-doc2 .record-item{padding:6px 0;border-bottom:1px solid #e6f0ea;font-size:13px;color:#4a6357;}
+#page-doc2 .record-item:last-child{border-bottom:none;}
+#page-doc2 h3{color:#0f7a52 !important;}
+#page-doc2 h4{color:#0f7a52 !important;}
+@media(max-width:980px){
+#page-doc2 .main-layout{flex-direction:column;}
+#page-doc2 .control-panel{width:100%;}
+#page-doc2 .chart-container{min-width:unset;}
+#page-doc2 .chart-card{width:100%;min-width:unset;}
+#page-doc2 .data-show{grid-template-columns:1fr;}
+}
+@media(max-width:560px){
+#page-doc2{padding:14px 12px 44px;font-size:15px;}
+#page-doc2 h2{font-size:20px;}
+#page-doc2 .material-wrap{padding:16px 14px;}
+#page-doc2 .material-wrap p{font-size:15px;line-height:1.8;}
+#page-doc2 .record-section{padding:16px 14px 18px;}
+#page-doc2 .control-panel{padding:16px 14px;}
+#page-doc2 .chart-card{padding:14px;border-radius:12px;}
+#page-doc2 .chart-title{font-size:15px;}
+}
+/* ================= 页面二：大闸蟹蟹塘捕捞策略模拟 ================= */
+#page-sim{--bg:#eef4f0;
+    --card:#ffffff;
+    --ink:#1b3a2f;
+    --ink-soft:#4a6357;
+    --line:#d3e2d9;
+    --accent:#0f7a52;
+    --accent-soft:#e3f2ea;
+    --crab:#c0392b;
+    --crab-soft:#fdeceb;
+    --k:#b8860b;
+    --half:#2f6fbf;
+    --shadow:0 2px 10px rgba(20,60,45,.08);}
+#page-sim *{box-sizing:border-box;}
+#page-sim{margin:0;padding:0;}
+#page-sim{font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Source Han Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.6;
+    -webkit-text-size-adjust:100%;}
+#page-sim .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px;}
+
+#page-sim header{
+    background:linear-gradient(135deg,#0f7a52,#159b68);
+    color:#fff;border-radius:14px;padding:22px 26px;margin-bottom:18px;
+    box-shadow:var(--shadow);
+}
+#page-sim header h1{margin:0 0 6px;font-size:26px;letter-spacing:.5px;}
+#page-sim header p{margin:0;font-size:14px;opacity:.92;}
+#page-sim .panel{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:18px;box-shadow:var(--shadow);
+}
+#page-sim .panel h2{
+    margin:0 0 16px;font-size:18px;color:var(--accent);
+    display:flex;align-items:center;gap:10px;
+}
+#page-sim .panel h2 .num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:8px;background:var(--accent);
+    color:#fff;font-size:14px;flex:0 0 auto;
+}
+#page-sim .slider-row{
+    display:grid;grid-template-columns:1fr auto;gap:10px 18px;
+    align-items:center;padding:14px 0;border-bottom:1px dashed var(--line);
+}
+#page-sim .slider-row:last-of-type{border-bottom:none;}
+#page-sim .slider-label{font-size:16px;font-weight:600;}
+#page-sim .slider-hint{grid-column:1/-1;font-size:13px;color:var(--ink-soft);margin-top:-4px;}
+#page-sim .slider-val{
+    font-size:22px;font-weight:700;color:var(--accent);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+    min-width:110px;text-align:right;
+}
+#page-sim .slider-val small{font-size:13px;font-weight:500;color:var(--ink-soft);}
+#page-sim input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:8px;
+    border-radius:6px;background:var(--accent-soft);outline:none;
+    grid-column:1/-1;
+}
+#page-sim input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;
+    background:var(--accent);border:3px solid #fff;cursor:pointer;
+    box-shadow:0 1px 5px rgba(0,0,0,.25);
+}
+#page-sim input[type=range]::-moz-range-thumb{
+    width:22px;height:22px;border-radius:50%;background:var(--accent);
+    border:3px solid #fff;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.25);
+}
+#page-sim input[type=range]:disabled{opacity:.5;cursor:not-allowed;}
+#page-sim .fixed-row{
+    display:flex;align-items:center;gap:10px;padding:14px 0;font-size:16px;
+    font-weight:600;
+}
+#page-sim .badge{
+    background:var(--accent-soft);color:var(--accent);border:1px solid #b8ded0;
+    border-radius:999px;padding:3px 14px;font-size:15px;
+}
+#page-sim .btn-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:6px;}
+#page-sim button{
+    font-family:inherit;font-size:17px;font-weight:700;cursor:pointer;
+    border:none;border-radius:10px;padding:13px 34px;
+    background:var(--accent);color:#fff;transition:.15s;
+    box-shadow:0 3px 10px rgba(15,122,82,.3);
+}
+#page-sim button:hover{background:#0c6444;transform:translateY(-1px);}
+#page-sim button:active{transform:translateY(0);}
+#page-sim button.ghost{
+    background:#fff;color:var(--accent);border:2px solid var(--accent);
+    box-shadow:none;padding:11px 24px;font-size:15px;
+}
+#page-sim button.ghost:hover{background:var(--accent-soft);}
+#page-sim .warn{
+    display:none;margin-top:14px;padding:12px 16px;border-radius:10px;
+    background:#fff4e5;border:1px solid #f0c48a;color:#8a5a00;
+    font-size:15px;font-weight:600;
+}
+#page-sim .warn.show{display:block;}
+#page-sim .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px;}
+#page-sim .stat{
+    background:linear-gradient(160deg,#f7fbf9,#eaf5ef);
+    border:1px solid var(--line);border-radius:12px;padding:16px;
+    text-align:center;
+}
+#page-sim .stat .k{font-size:14px;color:var(--ink-soft);margin-bottom:6px;}
+#page-sim .stat .v{font-size:30px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;}
+#page-sim .stat .u{font-size:14px;color:var(--ink-soft);margin-left:3px;font-weight:600;}
+#page-sim .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+#page-sim table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px;}
+#page-sim th,#page-sim td{padding:10px 12px;text-align:center;border-bottom:1px solid var(--line);}
+#page-sim thead th{
+    background:var(--accent);color:#fff;font-weight:700;font-size:15px;
+    position:sticky;top:0;
+}
+#page-sim tbody tr:nth-child(even){background:#f8fcfa;}
+#page-sim td.num{font-variant-numeric:tabular-nums;}
+#page-sim tr.harvest-row{background:var(--crab-soft) !important;}
+#page-sim tr.harvest-row td{font-weight:700;color:#8f2c22;}
+#page-sim tr.harvest-row td:first-child::after{content:" 🦀";}
+#page-sim td.zero{color:#a9bdb4;}
+#page-sim .legend-inline{display:flex;flex-wrap:wrap;gap:16px;font-size:14px;color:var(--ink-soft);margin:0 0 14px;}
+#page-sim .legend-inline span{display:inline-flex;align-items:center;gap:6px;}
+#page-sim .swatch{width:22px;height:0;border-top-width:3px;border-top-style:solid;display:inline-block;}
+#page-sim .dot{width:12px;height:12px;border-radius:50%;display:inline-block;}
+#page-sim .chart-box{position:relative;height:420px;width:100%;}
+@media (max-width:760px){ #page-sim .chart-box{height:330px;} }
+#page-sim .note{
+    font-size:13.5px;color:var(--ink-soft);background:#f5faf7;
+    border-left:4px solid var(--accent);border-radius:0 8px 8px 0;
+    padding:10px 14px;margin-top:16px;
+}
+#page-sim .hidden{display:none;}
+@media (max-width:900px){
+#page-sim header h1{font-size:22px;}
+#page-sim .summary{grid-template-columns:1fr;}
+#page-sim .slider-val{min-width:88px;font-size:19px;}
+#page-sim .stat .v{font-size:26px;}
+}
+@media (max-width:560px){
+#page-sim .wrap{padding:12px 10px 44px;}
+#page-sim .panel{padding:16px 14px;border-radius:12px;}
+#page-sim header{padding:16px 18px;border-radius:12px;}
+#page-sim header h1{font-size:19px;}
+#page-sim header p{font-size:12.5px;}
+#page-sim .panel h2{font-size:16px;}
+#page-sim .slider-label{font-size:14.5px;}
+#page-sim button{width:100%;padding:14px;}
+#page-sim button.ghost{width:auto;}
+#page-sim table{font-size:13.5px;}
+#page-sim th,#page-sim td{padding:8px 6px;}
+#page-sim .legend-inline{font-size:12.5px;gap:10px;}
+}
+</style>
+</head>
+<body>
+
+<nav id="tabbar">
+  <span class="brand">大闸蟹种群探究实验平台</span>
+  <button class="tab-btn active" data-tab="doc2">种群数量变化模拟</button>
+  <button class="tab-btn" data-tab="sim">捕捞策略模拟</button>
+</nav>
+
+<!-- ========== 页面一：种群数量变化模拟 ========== -->
+<div class="page-panel active" id="page-doc2">
+<h2>种群数量变化模拟</h2>
+<div class="info-box">
+修改环境参数，观察蟹群种群数量变化情况，体会环境因子的作用。注意：模拟实验时请先修改条件，点击开始，等待曲线完成后选择记录本组实验，再选择重置本组，随后继续修改实验条件，完成下一组实验。如果点击清空记录则会清除已经储存的实验曲线。
+</div>
+<div class="material-wrap">
+    <h3>补充材料</h3>
+    <p>伊乐藻含有少量的粗蛋白、粗脂肪、粗纤维等物质，可以在一定程度上提高大闸蟹的消化酶活力，有助于蛋白质等营养物质的吸收。生长于有伊乐藻池塘的大闸蟹，其相关生长指标与肥满度均显著高于生长于无伊乐藻池塘的大闸蟹，表明有伊乐藻的环境更有利于大闸蟹的生长。</p>
+    <p>蟹奴是一类营寄生生活的甲壳动物，能对寄主的生长、生殖等系统进行调控，改变寄主形态、行为和生理。被寄生后，寄主的性腺及附属器官发育均受到严重影响，从而失去繁殖能力，蟹奴亦可造成寄主死亡。</p>
+</div>
+<div class="main-layout">
+    <div class="control-panel">
+        <h3 style="margin:0 0 14px 0;font-size:16px;color:#0f7a52;">环境参数设置</h3>
+        <div class="group">
+            <label>水温</label>
+            <select id="tempSel">
+                <option value="opt" selected>最适</option>
+                <option value="low">偏低</option>
+                <option value="high">偏高</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>伊乐藻（水草）</label>
+            <select id="plantSel">
+                <option value="yes" selected>有伊乐藻</option>
+                <option value="no">无伊乐藻</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>蟹奴寄生</label>
+            <select id="paraSel">
+                <option value="no" selected>无蟹奴</option>
+                <option value="yes">有蟹奴</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>盐度</label>
+            <select id="saltSel">
+                <option value="low">低盐度</option>
+                <option value="opt" selected>适宜盐度</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>溶解氧</label>
+            <select id="oxSel">
+                <option value="low">低氧</option>
+                <option value="opt" selected>适宜</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>pH</label>
+            <select id="phSel">
+                <option value="acid">酸性</option>
+                <option value="neu" selected>中性</option>
+                <option value="alk">碱性</option>
+            </select>
+        </div>
+        <div class="btns">
+            <button class="btn-run" id="runBtn">▶ 开始仿真</button>
+            <button class="btn-reset" id="resetBtn">重置本组</button>
+        </div>
+        <div class="btns">
+            <button class="btn-rec" id="recBtn">记录本组实验</button>
+            <button class="btn-clear-record" id="clearAllRec">清空记录</button>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-card">
+            <div class="chart-title">单组实时仿真曲线</div>
+            <canvas id="popCanvas" height="320"></canvas>
+            <div class="data-show">
+                <div class="data-item">
+                    <div class="lab">当前种群数量</div>
+                    <div class="num" id="popNum">-</div>
+                </div>
+                <div class="data-item">
+                    <div class="lab">出生率</div>
+                    <div class="num" id="birthNum">-</div>
+                </div>
+                <div class="data-item">
+                    <div class="lab">死亡率</div>
+                    <div class="num" id="deathNum">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">多组实验对比曲线</div>
+            <canvas id="compareCanvas" height="320"></canvas>
+            <div class="legend-wrap" id="legendWrap"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 已记录实验组：位于两幅曲线图下方 -->
+<div class="record-section">
+    <h4 class="record-title">已记录实验组</h4>
+    <div class="record-box" id="recBox">
+        <div style="color:#8aa79a;font-size:13px;">尚未记录实验</div>
+    </div>
+</div>
+
+</div>
+<!-- ========== 页面二：大闸蟹蟹塘捕捞策略模拟 ========== -->
+<div class="page-panel" id="page-sim">
+<div class="wrap">
+
+  <header>
+    <h1>大闸蟹蟹塘捕捞策略模拟</h1>
+    <p>通过调整捕捞策略，观察连续五次捕捞所需的时间与产量，寻找最佳策略。</p>
+  </header>
+
+  <!-- ======== 区域一：策略设置 ======== -->
+  <section class="panel">
+    <h2><span class="num">1</span>策略设置区</h2>
+
+    <div class="slider-row">
+      <div class="slider-label">捕捞触发数量</div>
+      <div class="slider-val"><span id="triggerVal">1200</span><small> 只</small></div>
+      <input type="range" id="trigger" min="100" max="1400" step="50" value="1200">
+      <div class="slider-hint">当蟹群数量 ≥ 该数值时，开始捕捞。</div>
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-label">捕捞后剩余量</div>
+      <div class="slider-val"><span id="residualVal">700</span><small> 只</small></div>
+      <input type="range" id="residual" min="50" max="1000" step="50" value="700">
+      <div class="slider-hint">每次捕捞结束后，蟹塘中保留的螃蟹数量。</div>
+    </div>
+
+    <div class="fixed-row">
+      <span>连续捕捞次数</span>
+      <span class="badge">连续捕捞 5 次（固定）</span>
+    </div>
+
+    <div class="btn-row">
+      <button id="simRunBtn">运行模拟</button>
+      <button class="ghost" id="simResetBtn">恢复默认（1200 / 700）</button>
+    </div>
+
+    <div class="warn" id="warnBox"></div>
+  </section>
+
+  <!-- ======== 区域二：结果汇总 ======== -->
+  <section class="panel" id="resultPanel">
+    <h2><span class="num">2</span>结果汇总</h2>
+
+    <div class="summary">
+      <div class="stat"><div class="k">总耗时</div><div class="v"><span id="totalYears">—</span></div></div>
+      <div class="stat"><div class="k">捕捞总量</div><div class="v"><span id="totalCatch">—</span><span class="u">只</span></div></div>
+      <div class="stat"><div class="k">平均年捕捞量</div><div class="v"><span id="avgCatch">—</span><span class="u">只/年</span></div></div>
+    </div>
+
+    <h2 style="margin-top:26px;"><span class="num">3</span>每次捕捞明细</h2>
+    <div class="tbl-scroll">
+      <table id="harvestTable">
+        <thead>
+          <tr><th>捕捞次序</th><th>捕捞年份</th><th>捕捞前数量（只）</th><th>捕捞量（只）</th><th>捕捞后剩余量（只）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>第1次</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>第2次</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>第3次</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>第4次</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>第5次</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ======== 区域三：逐年表格 + 曲线图 ======== -->
+  <section class="panel" id="detailPanel">
+    <h2><span class="num">4</span>逐年数据与种群曲线</h2>
+
+    <div class="legend-inline">
+      <span><i class="swatch" style="border-top-color:#0f7a52;"></i>种群数量</span>
+      <span><i class="dot" style="background:#c0392b;"></i>捕捞发生点</span>
+      <span><i class="swatch" style="border-top-style:dashed;border-top-color:#b8860b;"></i>K 值 = 1390 只</span>
+      <span><i class="swatch" style="border-top-style:dashed;border-top-color:#2f6fbf;"></i>K/2 ≈ 695 只</span>
+    </div>
+
+    <div class="chart-box"><canvas id="popChart"></canvas></div>
+
+    <h2 style="margin-top:26px;"><span class="num">5</span>逐年数据表</h2>
+    <div class="tbl-scroll">
+      <table id="yearTable">
+        <thead>
+          <tr><th>年份</th><th>年初种群数量（只）</th><th>当年捕捞量（只）</th><th>捕捞后剩余量（只）</th></tr>
+        </thead>
+        <tbody id="yearBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+</div>
+<script>
+/* ============ 标签切换 ============ */
+(function(){
+  var btns = document.querySelectorAll('.tab-btn');
+  var panels = { doc2: document.getElementById('page-doc2'), sim: document.getElementById('page-sim') };
+  function activate(name){
+    btns.forEach(function(b){ b.classList.toggle('active', b.dataset.tab === name); });
+    Object.keys(panels).forEach(function(k){ panels[k].classList.toggle('active', k === name); });
+    window.dispatchEvent(new Event('resize'));
+    try{ localStorage.setItem('crab_active_tab', name); }catch(e){}
+  }
+  btns.forEach(function(b){ b.addEventListener('click', function(){ activate(b.dataset.tab); }); });
+  try{
+    var saved = localStorage.getItem('crab_active_tab');
+    if(saved && panels[saved]) activate(saved);
+  }catch(e){}
+})();
+</script>
+
+<!-- ============ 页面一脚本（独立作用域） ============ -->
+<script>
+(function(){
+const canvas = document.getElementById('popCanvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+const compareCanvas = document.getElementById('compareCanvas');
+const ctxComp = compareCanvas ? compareCanvas.getContext('2d') : null;
+const legendWrap = document.getElementById("legendWrap");
+const popNumEl = document.getElementById('popNum');
+const birthNumEl = document.getElementById('birthNum');
+const deathNumEl = document.getElementById('deathNum');
+const runBtn = document.getElementById('runBtn');
+const resetBtn = document.getElementById('resetBtn');
+const recBtn = document.getElementById('recBtn');
+const clearAllRec = document.getElementById('clearAllRec');
+const recBox = document.getElementById('recBox');
+const tempSel = document.getElementById('tempSel');
+const plantSel = document.getElementById('plantSel');
+const paraSel = document.getElementById('paraSel');
+const saltSel = document.getElementById('saltSel');
+const oxSel = document.getElementById('oxSel');
+const phSel = document.getElementById('phSel');
+let simRunning = false;
+let simTimer = null;
+let timeList = [];
+let popList = [];
+let birthList = [];
+let deathList = [];
+let month = 0;
+let population = 120;
+let records = [];
+const lineColors = ["#0f7a52","#c0392b","#2f6fbf","#b8860b","#159b68","#8e44ad"];
+function getRealValues(){
+    let tempMap = {"opt":25,"low":14,"high":32};
+    let plantMap = {"yes":70,"no":5};
+    let paraMap = {"no":0,"yes":40};
+    let saltMap = {"low":1,"opt":5};
+    let oxMap = {"low":2.5,"opt":6};
+    let phMap = {"acid":6.4,"neu":7.8,"alk":8.8};
+    return {
+        temp: tempMap[tempSel.value],
+        plant: plantMap[plantSel.value],
+        parasite: paraMap[paraSel.value],
+        salt: saltMap[saltSel.value],
+        oxygen: oxMap[oxSel.value],
+        ph: phMap[phSel.value]
+    }
+}
+function calcEnvironment(){
+    const v = getRealValues();
+    const temp = v.temp;
+    const plant = v.plant;
+    const parasite = v.parasite;
+    const salt = v.salt;
+    const oxygen = v.oxygen;
+    const ph = v.ph;
+    let tempFit = Math.exp(-Math.pow((temp-25)/4.2,2));
+    let plantFit = Math.exp(-Math.pow((plant-70)/24,2));
+    let saltFit = Math.exp(-Math.pow((salt-5)/3.2,2));
+    let oxFit = Math.exp(-Math.pow((oxygen-6)/1.8,2));
+    let phFit = Math.exp(-Math.pow((ph-7.8)/0.7,2));
+    let envFit = tempFit*0.23 + plantFit*0.27 + saltFit*0.22 + oxFit*0.18 + phFit*0.10;
+    envFit = Math.max(0.01,Math.min(1.0,envFit));
+    const paraFactor = parasite / 100.0;
+    let birthRateBase = 0.33 * envFit * (1-paraFactor*0.82);
+    if(salt === 1){
+        birthRateBase *= 0.28;
+    }
+    let deathRateBase = 0.04 + (1-envFit)*0.30 + paraFactor*0.48;
+    return {birth:birthRateBase, death:deathRateBase, fit:envFit};
+}
+function drawChart(){
+    if(!canvas || !ctx) return;
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const padL = 52;
+    const padR = 16;
+    const padB = 42;
+    const padT = 16;
+    const chartW = w-padL-padR;
+    const chartH = h-padT-padB;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, h-padB);
+    ctx.lineTo(w-padR, h-padB);
+    ctx.strokeStyle="#4a6357"; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle="#4a6357"; ctx.font="13px sans-serif";
+    ctx.save();ctx.translate(16, h/2);ctx.rotate(-Math.PI/2);ctx.fillText("种群数量(个体)",0,0);ctx.restore();
+    ctx.fillText("时间(月)", w/2-28, h-6);
+    if(timeList.length <2) return;
+    const maxPop = Math.max(...popList)*1.15;
+    const maxT = Math.max(...timeList);
+    ctx.beginPath();
+    for(let i=0;i<timeList.length;i++){
+        const t = timeList[i];
+        const p = popList[i];
+        const x = padL + (t/maxT)*chartW;
+        const y = (h-padB)- (p/maxPop)*chartH;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle="#0f7a52"; ctx.lineWidth=2.4; ctx.stroke();
+    for(let i=0;i<timeList.length;i++){
+        const t = timeList[i];
+        const p = popList[i];
+        const x = padL + (t/maxT)*chartW;
+        const y = (h-padB)- (p/maxPop)*chartH;
+        ctx.beginPath();ctx.arc(x,y,3.8,0,Math.PI*2);ctx.fillStyle="#0f7a52";ctx.fill();
+    }
+}
+function drawCompareChart(){
+    if(!compareCanvas || !ctxComp) return;
+    compareCanvas.width = compareCanvas.clientWidth;
+    compareCanvas.height = compareCanvas.clientHeight;
+    const w = compareCanvas.width;
+    const h = compareCanvas.height;
+    ctxComp.clearRect(0,0,w,h);
+    const padL = 52;
+    const padR = 16;
+    const padB = 42;
+    const padT = 16;
+    const chartW = w-padL-padR;
+    const chartH = h-padT-padB;
+    ctxComp.beginPath();
+    ctxComp.moveTo(padL, padT);
+    ctxComp.lineTo(padL, h-padB);
+    ctxComp.lineTo(w-padR, h-padB);
+    ctxComp.strokeStyle="#4a6357"; ctxComp.lineWidth=1.5; ctxComp.stroke();
+    ctxComp.fillStyle="#4a6357"; ctxComp.font="13px sans-serif";
+    ctxComp.save();ctxComp.translate(16, h/2);ctxComp.rotate(-Math.PI/2);ctxComp.fillText("种群数量(个体)",0,0);ctxComp.restore();
+    ctxComp.fillText("时间(月)", w/2-28, h-6);
+    legendWrap.innerHTML = "";
+    for(let idx=0;idx<records.length;idx++){
+        const div = document.createElement("div");
+        div.className = "legend-item";
+        div.innerHTML = `<span class="legend-color-block" style="background:${lineColors[idx % lineColors.length]}"></span>实验${idx+1}`;
+        legendWrap.appendChild(div);
+    }
+    if(records.length===0) {
+        ctxComp.fillStyle="#8aa79a";
+        ctxComp.textAlign="center";
+        ctxComp.fillText("暂无记录的实验，请先记录仿真数据",w/2,h/2);
+        return;
+    }
+    let allPops = [];
+    records.forEach(r=>{allPops.push(...r.popData);})
+    const maxPopAll = Math.max(...allPops)*1.15;
+    const maxTAll = 36;
+    records.forEach((rec,idx)=>{
+        const color = lineColors[idx % lineColors.length];
+        ctxComp.beginPath();
+        for(let i=0;i<rec.timeData.length;i++){
+            const t = rec.timeData[i];
+            const p = rec.popData[i];
+            const x = padL + (t/maxTAll)*chartW;
+            const y = (h-padB)- (p/maxPopAll)*chartH;
+            if(i===0) ctxComp.moveTo(x,y); else ctxComp.lineTo(x,y);
+        }
+        ctxComp.strokeStyle=color;
+        ctxComp.lineWidth=2.2; ctxComp.stroke();
+    })
+}
+function simStep(){
+    const res = calcEnvironment();
+    let birth = res.birth;
+    let death = res.death;
+    const K = Math.round(1400 * res.fit);
+    const r = birth-death;
+    let delta = r * population * (1- population / K);
+    population = Math.max(5, Math.round(population + delta));
+    month +=1;
+    timeList.push(month);
+    popList.push(population);
+    birthList.push(birth);
+    deathList.push(death);
+    popNumEl.innerText = population;
+    birthNumEl.innerText = birth.toFixed(3);
+    deathNumEl.innerText = death.toFixed(3);
+    drawChart();
+    if(month >=36){
+        stopSim();
+    }
+}
+function startSim(){
+    if(simRunning) return;
+    simRunning = true;
+    runBtn.innerText = "⏸ 运行中";
+    simTimer = setInterval(simStep,220);
+}
+function stopSim(){
+    simRunning = false;
+    clearInterval(simTimer);
+    runBtn.innerText = "▶ 开始仿真";
+}
+function resetAll(){
+    stopSim();
+    month =0;
+    population =120;
+    timeList = []; popList=[]; birthList=[]; deathList=[];
+    popNumEl.innerText = "-"; birthNumEl.innerText="-"; deathNumEl.innerText="-";
+    drawChart();
+}
+function recordExp(){
+    const v = getRealValues();
+    const finalPop = popList.length>0 ? popList[popList.length-1]:"未运行";
+    const recObj = {
+        desc:`${tempSel.options[tempSel.selectedIndex].text},${plantSel.options[plantSel.selectedIndex].text},${paraSel.options[paraSel.selectedIndex].text},${saltSel.options[saltSel.selectedIndex].text},${oxSel.options[oxSel.selectedIndex].text},${phSel.options[phSel.selectedIndex].text}`,
+        finalPop,
+        month,
+        timeData:[...timeList],
+        popData:[...popList]
+    };
+    records.push(recObj);
+    renderRecord();
+    drawCompareChart();
+}
+function renderRecord(){
+    if(records.length===0){
+        recBox.innerHTML = `<div style="color:#8aa79a;font-size:13px;">尚未记录实验</div>`;
+        return;
+    }
+    let html = "";
+    records.forEach((r,idx)=>{
+        html += `<div class="record-item">实验${idx+1}｜${r.desc}｜终种群:${r.finalPop} 时长${r.month}月</div>`;
+    })
+    recBox.innerHTML = html;
+}
+function clearAllRecord(){
+    records = [];
+    renderRecord();
+    drawCompareChart();
+}
+runBtn.onclick = function(){
+    if(simRunning){stopSim();}else{startSim();}
+};
+resetBtn.onclick = resetAll;
+recBtn.onclick = recordExp;
+clearAllRec.onclick = clearAllRecord;
+window.onload = function(){
+    drawChart();
+    drawCompareChart();
+};
+
+// 标签页切换 / 窗口尺寸变化后重绘画布
+var resizeRaf = null;
+window.addEventListener('resize', function(){
+    if (resizeRaf) cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(function(){
+        drawChart();
+        drawCompareChart();
+    });
+});
+})();
+</script>
+<!-- ============ 页面二脚本（独立作用域） ============ -->
+<script>
+(function(){
+/* =========================================================
+   固定种群数据（教师提供，学生不可修改）
+   ========================================================= */
+const POP_DATA = [2,4,10,20,50,100,210,420,780,1160,1310,1360,1380,1390,1390];
+const K = 1390;              // 环境容纳量
+const HALF_K = Math.round(K/2);  // K/2 ≈ 695
+const MAX_YEARS = 100;       // 恢复上限年限保护
+const HARVEST_TIMES = 5;     // 固定连续捕捞次数
+const MONTHS_PER_YEAR = 12;  // 内部时间粒度：以"月"推进，使不同触发线可区分
+
+/* =========================================================
+   恢复模型：从 S 形曲线中"提取增长规律"，再用于恢复计算
+        dN/dt = r · N · (1 − N / K)
+   r 由教师数据反推（取 K/2 附近区段）：
+     第 8→9 年： 420 → 780  ，r = 360/[420×(1−420/1390)] ≈ 1.23
+     第 9→10 年：780 → 1160 ，r = 380/[780×(1−780/1390)] ≈ 1.11
+   取平均 r ≈ 1.17。
+   ========================================================= */
+const R_GROWTH = 1.17;
+
+/* 以月为步长推进一步（欧拉法积分逻辑斯谛方程） */
+function growOneMonth(x){
+  if (x >= K) return K;
+  const nx = x + R_GROWTH * x * (1 - x / K) / MONTHS_PER_YEAR;
+  return Math.min(K, nx);
+}
+
+/* ---------------------------------------------------------
+   核心模拟（以"月"为内部步长推进，以"年"为报告单位）
+   --------------------------------------------------------- */
+function simulate(trigger, residual){
+  const harvests = [];        // {order, year, month, before, amount, after}
+  const yearRows = [];        // {year, start, catch, after}
+  const harvestMonths = [];   // 每次捕捞的"绝对月序号"，用于精确计算总耗时
+
+  let order = 0;
+  let year = 1;
+  let useTable = true;        // 是否仍处于"按数据表"阶段
+  let state = null;           // 恢复中的当前种群数量
+
+  while (year <= MAX_YEARS && order < HARVEST_TIMES){
+    /* --- 确定当年"年初"的种群数量 --- */
+    let startCount;
+    if (useTable){
+      if (POP_DATA[year - 1] !== undefined){
+        startCount = POP_DATA[year - 1];
+      } else {
+        useTable = false;
+        state = POP_DATA[POP_DATA.length - 1];
+        startCount = state;
+      }
+    }
+    if (!useTable) startCount = state;
+
+    let catchAmount = 0;
+    let afterCount = startCount;
+    let harvestedThisYear = false;
+
+    if (startCount >= trigger){
+      /* ===== 年初即达到触发线 → 年初捕捞 ===== */
+      catchAmount = startCount - residual;
+      afterCount = residual;
+      order++;
+      harvestMonths.push((year - 1) * MONTHS_PER_YEAR);   // 该年年初
+      harvests.push({ order, year, month: 1,
+        before: Math.round(startCount), amount: Math.round(catchAmount), after: Math.round(afterCount) });
+      useTable = false;
+      state = residual;
+      harvestedThisYear = true;
+
+    } else if (!useTable){
+      /* ===== 捕捞后：年内逐月恢复，达到触发线即捕捞 ===== */
+      let v = startCount;
+      for (let m = 1; m <= MONTHS_PER_YEAR; m++){
+        v = growOneMonth(v);
+        if (v >= trigger){
+          catchAmount = v - residual;
+          afterCount = residual;
+          order++;
+          harvestMonths.push((year - 1) * MONTHS_PER_YEAR + m);  // 该年第 m 个月
+          harvests.push({ order, year, month: m,
+            before: Math.round(v), amount: Math.round(catchAmount), after: Math.round(afterCount) });
+          // 捕捞后当年余下月份继续恢复
+          state = residual;
+          for (let j = m; j < MONTHS_PER_YEAR; j++) state = growOneMonth(state);
+          harvestedThisYear = true;
+          break;
+        }
+      }
+      if (!harvestedThisYear) state = v;     // 整年未达触发线
+
+    } else {
+      /* ===== 尚未捕捞、表值未达触发线：按增长规律继续演化 ===== */
+      let v = startCount;
+      for (let m = 0; m < MONTHS_PER_YEAR; m++) v = growOneMonth(v);
+      state = v;
+    }
+
+    yearRows.push({
+      year,
+      start:  Math.round(startCount),
+      catch:  Math.round(catchAmount),
+      after:  Math.round(afterCount)
+    });
+    year++;
+  }
+
+  /* ---- 总耗时：首次捕捞到第五次捕捞之间的精确月数 ---- */
+  let totalMonths = 0;
+  if (harvestMonths.length === HARVEST_TIMES){
+    totalMonths = harvestMonths[harvestMonths.length - 1] - harvestMonths[0];
+  }
+  const totalYearsFloat = totalMonths / MONTHS_PER_YEAR;
+  const totalYears = Math.round(totalYearsFloat * 10) / 10;
+  const totalCatch = harvests.reduce((s,h)=>s+h.amount, 0);
+  const avg = totalYearsFloat > 0 ? Math.round(totalCatch / totalYearsFloat) : 0;
+
+  return {
+    harvests, yearRows,
+    totalMonths, totalYears, totalYearsFloat,
+    totalCatch, avg,
+    complete: order >= HARVEST_TIMES
+  };
+}
+
+/* ---------------------------------------------------------
+   渲染
+   --------------------------------------------------------- */
+let chart = null;
+
+function fmt(n){ return Math.round(n).toLocaleString('en-US'); }
+
+/* 把"年+月"格式化为 "7年" 或 "7年4个月" */
+function fmtDuration(yearsFloat){
+  const totalMonths = Math.round(yearsFloat * 12);
+  const y = Math.floor(totalMonths / 12);
+  const m = totalMonths % 12;
+  if (y === 0) return m + ' 个月';
+  return m === 0 ? (y + ' 年') : (y + ' 年 ' + m + ' 个月');
+}
+
+function renderHarvestTable(harvests){
+  const tbody = document.querySelector('#harvestTable tbody');
+  tbody.innerHTML = '';
+  for (let i = 1; i <= HARVEST_TIMES; i++){
+    const h = harvests[i-1];
+    const tr = document.createElement('tr');
+    if (h){
+      const when = h.month === 1 ? `第${h.year}年` : `第${h.year}年（第${h.month}个月）`;
+      tr.innerHTML = `<td>第${i}次</td>
+        <td class="num">${when}</td>
+        <td class="num">${fmt(h.before)}</td>
+        <td class="num">${fmt(h.amount)}</td>
+        <td class="num">${fmt(h.after)}</td>`;
+    } else {
+      tr.innerHTML = `<td>第${i}次</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>`;
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+function renderYearTable(rows, harvestYears){
+  const tbody = document.getElementById('yearBody');
+  tbody.innerHTML = '';
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    if (harvestYears.includes(r.year)) tr.className = 'harvest-row';
+    const c = r.catch > 0 ? fmt(r.catch) : '0';
+    const cls = r.catch > 0 ? 'num' : 'num zero';
+    tr.innerHTML = `<td class="num">第${r.year}年</td>
+      <td class="num">${fmt(r.start)}</td>
+      <td class="${cls}">${c}</td>
+      <td class="num">${fmt(r.after)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderChart(rows, harvestYears){
+  const labels = rows.map(r=>'第'+r.year+'年');
+  const data   = rows.map(r=>r.start);
+  const points = rows.map(r=> harvestYears.includes(r.year) ? r.start : null);
+  const capAfter = rows.map(r=> harvestYears.includes(r.year) ? r.after : null);
+
+  const canvasEl = document.getElementById('popChart');
+  // 先销毁已存在的实例（含 Chart.js 全局注册表兜底），再获取 2D 上下文
+  if (chart) { chart.destroy(); chart = null; }
+  const existing = (typeof Chart.getChart === 'function') ? Chart.getChart(canvasEl) : null;
+  if (existing) existing.destroy();
+  const ctx = canvasEl.getContext('2d');
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '种群数量',
+          data,
+          borderColor: '#0f7a52',
+          backgroundColor: 'rgba(15,122,82,.10)',
+          borderWidth: 3,
+          tension: .28,
+          fill: true,
+          pointRadius: 3,
+          pointBackgroundColor: '#0f7a52',
+          pointHoverRadius: 6,
+          order: 3
+        },
+        {
+          label: '捕捞发生点',
+          data: points,
+          borderColor: '#c0392b',
+          backgroundColor: '#c0392b',
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          pointStyle: 'circle',
+          showLine: false,
+          order: 1
+        },
+        {
+          label: '捕捞后剩余量',
+          data: capAfter,
+          borderColor: 'rgba(192,57,43,.65)',
+          backgroundColor: '#fff',
+          borderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          pointStyle: 'rectRot',
+          showLine: false,
+          order: 2
+        },
+        {
+          label: 'K 值（1390 只）',
+          data: labels.map(()=>K),
+          borderColor: '#b8860b',
+          borderWidth: 2,
+          borderDash: [8,6],
+          pointRadius: 0,
+          fill: false,
+          order: 5
+        },
+        {
+          label: 'K/2（≈695 只）',
+          data: labels.map(()=>HALF_K),
+          borderColor: '#2f6fbf',
+          borderWidth: 2,
+          borderDash: [8,6],
+          pointRadius: 0,
+          fill: false,
+          order: 5
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { boxWidth: 14, boxHeight: 14, font: { size: 13 }, usePointStyle: true, padding: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            label: c => c.dataset.label + '：' + (c.parsed.y === null ? '—' : Math.round(c.parsed.y) + ' 只')
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          suggestedMax: 1550,
+          title: { display: true, text: '种群数量（只）', font: { size: 13, weight: 'bold' } },
+          ticks: { font: { size: 12 } },
+          grid: { color: '#e8f1ec' }
+        },
+        x: {
+          title: { display: true, text: '年份', font: { size: 13, weight: 'bold' } },
+          ticks: { font: { size: 12 }, maxRotation: 60, minRotation: 0, autoSkip: true },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+/* ---------------------------------------------------------
+   主流程
+   --------------------------------------------------------- */
+const triggerEl = document.getElementById('trigger');
+const residualEl = document.getElementById('residual');
+const triggerValEl = document.getElementById('triggerVal');
+const residualValEl = document.getElementById('residualVal');
+const warnBox = document.getElementById('warnBox');
+
+function syncLabels(){
+  triggerValEl.textContent = triggerEl.value;
+  residualValEl.textContent = residualEl.value;
+}
+triggerEl.addEventListener('input', syncLabels);
+residualEl.addEventListener('input', syncLabels);
+
+document.getElementById('simResetBtn').addEventListener('click', ()=>{
+  triggerEl.value = 1200;
+  residualEl.value = 700;
+  syncLabels();
+  warnBox.classList.remove('show');
+});
+
+document.getElementById('simRunBtn').addEventListener('click', ()=>{
+  const trigger = parseInt(triggerEl.value, 10);
+  const residual = parseInt(residualEl.value, 10);
+
+  // 终止条件：触发数量超过 K
+  if (trigger > K){
+    warnBox.textContent = '触发数量超过环境容纳量（K = 1390 只），种群不会达到该数量，无法触发捕捞。';
+    warnBox.classList.add('show');
+    clearOutputs();
+    return;
+  }
+  if (residual >= trigger){
+    warnBox.textContent = '捕捞后剩余量不应大于或等于捕捞触发数量，否则不会产生有效捕捞。请调整策略。';
+    warnBox.classList.add('show');
+    clearOutputs();
+    return;
+  }
+  warnBox.classList.remove('show');
+
+  const res = simulate(trigger, residual);
+
+  // 汇总
+  document.getElementById('totalYears').textContent = fmtDuration(res.totalYearsFloat);
+  document.getElementById('totalCatch').textContent = fmt(res.totalCatch);
+  document.getElementById('avgCatch').textContent   = Math.round(res.avg);
+
+  const harvestYears = res.harvests.map(h=>h.year);
+  renderHarvestTable(res.harvests);
+  renderYearTable(res.yearRows, harvestYears);
+  renderChart(res.yearRows, harvestYears);
+
+  if (!res.complete){
+    warnBox.textContent = '在 40 年的模拟上限内未能完成 5 次捕捞，请放宽捕捞触发数量或提高捕捞后剩余量。';
+    warnBox.classList.add('show');
+  }
+
+  document.getElementById('resultPanel').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+function clearOutputs(){
+  document.getElementById('totalYears').textContent = '—';
+  document.getElementById('totalCatch').textContent = '—';
+  document.getElementById('avgCatch').textContent   = '—';
+  renderHarvestTable([]);
+  document.getElementById('yearBody').innerHTML = '';
+  if (chart){ chart.destroy(); chart = null; }
+  const cEl = document.getElementById('popChart');
+  const ex = (cEl && typeof Chart.getChart === 'function') ? Chart.getChart(cEl) : null;
+  if (ex) ex.destroy();
+}
+
+syncLabels();
+})();
+</script>
+
+</body>
+</html>
